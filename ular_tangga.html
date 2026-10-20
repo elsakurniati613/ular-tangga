@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Snakes and Ladders - Mobile Edukasi Accounting</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --border-color: #334155;
+            --accent-chance: #d97706;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 8px; }
+        
+        .container { width: 100%; max-width: 480px; background: var(--card-bg); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--border-color); margin-bottom: 20px; }
+        header { background: #312e81; color: white; padding: 12px; text-align: center; font-size: 1.1rem; font-weight: bold; border-bottom: 1px solid var(--border-color); letter-spacing: 0.5px; }
+        
+        .screen { padding: 12px; display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; }
+        .hidden { display: none !important; }
+        
+        .tabs { display: flex; width: 100%; border-bottom: 2px solid var(--border-color); margin-bottom: 4px; }
+        .tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; cursor: pointer; color: #94a3b8; font-size: 0.9rem; }
+        .tab.active { color: #818cf8; border-bottom: 3px solid #818cf8; margin-bottom: -2px; }
+
+        .login-box { width: 100%; display: flex; flex-direction: column; gap: 10px; background: #0f172a; padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; outline: none; background: #1e293b; color: white; }
+        button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
+        button:hover { background: var(--primary-hover); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        /* Board 10x10 Grid Mobile Optimized */
+        .board-wrapper { width: 100%; position: relative; max-width: 100%; }
+        .board-container { width: 100%; aspect-ratio: 1; position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #475569; background: #020617; }
+        .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr); width: 100%; height: 100%; }
+        
+        .cell { border: 0.5px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: space-between; padding: 1px; font-size: 0.55rem; font-weight: bold; position: relative; background: #0f172a; }
+        .cell:nth-child(even) { background: #1e293b; }
+        .cell-c { background: #451a03 !important; border-color: #f59e0b !important; }
+        .cell-num { color: #94a3b8; font-size: 0.55rem; }
+        
+        /* SVG Overlay */
+        .svg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+        /* Tokens & Start Area */
+        .start-area { width: 100%; background: #0f172a; padding: 8px; border: 1px dashed var(--border-color); border-radius: 8px; text-align: center; }
+        .tokens { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; align-items: center; min-height: 20px; }
+        .token-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pawn-svg { width: 18px; height: 22px; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.6)); }
+        .pawn-label { font-size: 0.5rem; color: #ffffff; background: rgba(0,0,0,0.75); padding: 1px 3px; border-radius: 3px; white-space: nowrap; margin-top: -2px; }
+
+        .control-panel { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .player-status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+        .player-card { padding: 8px; border-radius: 8px; background: #0f172a; border: 1px solid var(--border-color); font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
+        .player-card.active { border-color: #6366f1; background: #1e1b4b; box-shadow: 0 0 0 1px #6366f1; }
+        .player-card .pawn-preview { width: 16px; height: 20px; flex-shrink: 0; }
+
+        .dice-box { text-align: center; padding: 12px; background: #0f172a; border-radius: 10px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        
+        /* 3D Dice */
+        .dice-container { perspective: 400px; width: 44px; height: 44px; margin: 2px; }
+        .dice { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s ease-out; }
+        .dice-face { position: absolute; width: 44px; height: 44px; background: #ffffff; border: 2px solid #cbd5e1; border-radius: 6px; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 4px; box-sizing: border-box; }
+        .dot { background: #1e293b; border-radius: 50%; width: 7px; height: 7px; justify-self: center; align-self: center; }
+        .dot.red { background: #ef4444; }
+
+        .f-1 { transform: translateZ(22px); }
+        .f-6 { transform: rotateY(180deg) translateZ(22px); }
+        .f-2 { transform: rotateY(-90deg) translateZ(22px); }
+        .f-5 { transform: rotateY(90deg) translateZ(22px); }
+        .f-3 { transform: rotateX(90deg) translateZ(22px); }
+        .f-4 { transform: rotateX(-90deg) translateZ(22px); }
+
+        .rolling { animation: spin 0.6s infinite linear; }
+        @keyframes spin { 0% { transform: rotateX(0deg) rotateY(0deg); } 100% { transform: rotateX(360deg) rotateY(360deg); } }
+
+        .log-box { height: 80px; background: #020617; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; overflow-y: auto; font-size: 0.7rem; display: flex; flex-direction: column; gap: 3px; width: 100%; color: #cbd5e1; }
+
+        /* Modal */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 14px; }
+        .modal-content { background: #1e293b; padding: 16px; border-radius: 14px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--border-color); }
+
+        .choice-btn { background: #0f172a; border: 1px solid var(--border-color); color: white; text-align: left; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
+        .choice-btn:active { background: #334155; }
+        .choice-btn.btn-correct { background: #065f46 !important; border-color: #10b981 !important; color: #a7f3d0 !important; font-weight: bold; }
+        .choice-btn.btn-wrong { background: #991b1b !important; border-color: #ef4444 !important; color: #fecaca !important; }
+
+        .feedback-banner { padding: 10px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; text-align: center; }
+        .feedback-banner.correct { background: #064e3b; color: #6ee7b7; border: 1px solid #10b981; }
+        .feedback-banner.wrong { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+
+        .gm-table-container { max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        th, td { border: 1px solid var(--border-color); padding: 5px 6px; text-align: left; }
+        th { background: #0f172a; position: sticky; top: 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>🎲 Snakes & Ladders (Accounting) 🎲</header>
+
+    <!-- SCREEN LOGIN -->
+    <div id="loginScreen" class="screen">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('player')">Login Player</div>
+            <div class="tab" onclick="switchTab('gm')">Game Master</div>
+        </div>
+
+        <div id="playerForm" class="login-box">
+            <label style="font-size:0.8rem; font-weight:bold;">Nama Tim:</label>
+            <input type="text" id="teamNameInput" placeholder="Ketik nama tim..." autocomplete="off">
+            
+            <label style="font-size:0.8rem; font-weight:bold;">Pilih Slot Pemain:</label>
+            <select id="playerSlotInput">
+                <option value="0">Pemain 1 (🔴 Merah)</option>
+                <option value="1">Pemain 2 (🔵 Biru)</option>
+                <option value="2">Pemain 3 (🟢 Hijau)</option>
+                <option value="3">Pemain 4 (🟡 Kuning)</option>
+            </select>
+            <button onclick="loginPlayer()">Masuk Permainan</button>
+        </div>
+
+        <div id="gmForm" class="login-box hidden">
+            <label style="font-size:0.8rem; font-weight:bold;">Passcode GM:</label>
+            <input type="password" id="gmPassInput" placeholder="Passcode (1234)...">
+            <button onclick="loginGM()">Masuk sebagai GM</button>
+        </div>
+    </div>
+
+    <!-- SCREEN GAME -->
+    <div id="gameScreen" class="screen hidden">
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+            <span id="roleIndicator" style="font-weight:bold; color:#818cf8;">Role: -</span>
+            <button onclick="logout()" style="width:auto; padding:4px 10px; font-size:0.7rem; background:#ef4444;">Keluar</button>
+        </div>
+
+        <!-- Area Start Posisi 0 -->
+        <div class="start-area">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 2px; font-weight: bold;">🚩 Area Start (Posisi 0)</div>
+            <div class="tokens" id="tokens-0"></div>
+        </div>
+
+        <!-- Board Wrapper -->
+        <div class="board-wrapper">
+            <div class="board-container">
+                <div class="board" id="boardGrid"></div>
+                <svg class="svg-overlay" id="svgOverlay"></svg>
+            </div>
+        </div>
+
+        <!-- Panel Kontrol -->
+        <div class="control-panel">
+            <div class="player-status-grid" id="playerStatusList"></div>
+
+            <div class="dice-box">
+                <div id="turnInfo" style="font-size:0.8rem; font-weight:bold; color: #818cf8;">Giliran: -</div>
+                
+                <div class="dice-container">
+                    <div class="dice" id="dice3d">
+                        <div class="dice-face f-1"><div class="dot red" style="grid-area: 2/2"></div></div>
+                        <div class="dice-face f-2"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-3"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 2/2"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-4"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 1/3"></div><div class="dot" style="grid-area: 3/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-5"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 1/3"></div><div class="dot" style="grid-area: 2/2"></div><div class="dot" style="grid-area: 3/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-6"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 1/3"></div><div class="dot" style="grid-area: 2/1"></div><div class="dot" style="grid-area: 2/3"></div><div class="dot" style="grid-area: 3/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 6px; width: 100%;">
+                    <button id="useCardBtn" class="hidden" style="background: #10b981; flex: 1;" onclick="useCardAction()">✨ Pakai Kartu</button>
+                    <button id="rollDiceBtn" onclick="rollDice()" style="flex: 1;">🎲 Kocok Dadu</button>
+                </div>
+            </div>
+
+            <div class="log-box" id="gameLogs"></div>
+        </div>
+    </div>
+
+    <!-- PANEL GM -->
+    <div id="gmPanel" class="screen hidden" style="border-top: 2px solid var(--border-color);">
+        <h3 style="font-size: 0.9rem; color: #818cf8;">🛠️ Panel Game Master</h3>
+        
+        <div style="display: flex; gap: 6px; width: 100%; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+            <button onclick="switchGMTab('questions')" id="gmTabQBtn" style="flex:1; padding:6px; font-size:0.75rem; background:#4f46e5;">Bank Soal (60)</button>
+            <button onclick="switchGMTab('cards')" id="gmTabCBtn" style="flex:1; padding:6px; font-size:0.75rem; background:#334155;">Master Kartu</button>
+        </div>
+
+        <!-- GM SECTION: SOAL -->
+        <div id="gmSectionQuestions" style="width:100%; display:flex; flex-direction:column; gap:6px;">
+            <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.8rem; font-weight:bold;">Bank Pertanyaan</span>
+                <button onclick="toggleGMQuestionList()" style="width:auto; padding:2px 6px; font-size:0.7rem; background:#475569;" id="toggleListBtn">Sembunyikan</button>
+            </div>
+
+            <div id="gmQuestionListWrapper" class="gm-table-container">
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Lvl</th><th>Kategori</th><th>Pertanyaan</th><th>Aksi</th></tr>
+                    </thead>
+                    <tbody id="gmQuestionTable"></tbody>
+                </table>
+            </div>
+
+            <div class="login-box">
+                <div id="gmFormTitle" style="font-weight:bold; font-size:0.8rem; color:#818cf8;">Tambah Soal Baru</div>
+                <input type="text" id="editQCategory" placeholder="Kategori (FIXED ASSET, CIP, dll)...">
+                <input type="text" id="editQText" placeholder="Teks Pertanyaan...">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+                    <input type="text" id="editOptA" placeholder="A">
+                    <input type="text" id="editOptB" placeholder="B">
+                    <input type="text" id="editOptC" placeholder="C">
+                    <input type="text" id="editOptD" placeholder="D">
+                </div>
+                <div style="display:flex; gap:4px;">
+                    <select id="editCorrectKey">
+                        <option value="A">Kunci: A</option>
+                        <option value="B">Kunci: B</option>
+                        <option value="C">Kunci: C</option>
+                        <option value="D">Kunci: D</option>
+                    </select>
+                    <select id="editQLevel">
+                        <option value="1">Lvl 1 (1 Poin)</option>
+                        <option value="2">Lvl 2 (2 Poin)</option>
+                        <option value="3">Lvl 3 (3 Poin)</option>
+                        <option value="4">Lvl 4 (4 Poin)</option>
+                        <option value="5">Lvl 5 (5 Poin)</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:4px;">
+                    <button onclick="saveQuestion()" id="saveQBtn">Simpan</button>
+                    <button id="cancelEditBtn" class="hidden" onclick="cancelEditQuestion()" style="background:#64748b;">Batal</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GM SECTION: KARTU -->
+        <div id="gmSectionCards" class="hidden" style="width:100%; display:flex; flex-direction:column; gap:6px;">
+            <div class="gm-table-container">
+                <table>
+                    <thead>
+                        <tr><th>Kategori</th><th>Judul</th><th>Efek</th><th>Aksi</th></tr>
+                    </thead>
+                    <tbody id="gmCardTable"></tbody>
+                </table>
+            </div>
+
+            <div class="login-box">
+                <div id="gmCardFormTitle" style="font-weight:bold; font-size:0.8rem; color:#f59e0b;">Tambah Kartu Kesempatan</div>
+                <div style="display:flex; gap:4px;">
+                    <select id="editCardCategory" style="width:110px;">
+                        <option value="[ATTACK]">[ATTACK]</option>
+                        <option value="[BUFF]">[BUFF]</option>
+                        <option value="[DEFENSE]">[DEFENSE]</option>
+                    </select>
+                    <input type="text" id="editCardTitle" placeholder="Judul Kartu...">
+                </div>
+                <input type="text" id="editCardDesc" placeholder="Deskripsi efek...">
+                <div style="display:flex; gap:4px;">
+                    <button onclick="saveChanceCard()" id="saveCardBtn" style="background:#d97706;">Simpan</button>
+                    <button id="cancelEditCardBtn" class="hidden" onclick="cancelEditChanceCard()" style="background:#64748b;">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PILIHAN JAWAB / SKIP -->
+<div id="promptQuestionModal" class="modal hidden">
+    <div class="modal-content" style="text-align:center;">
+        <h3 style="color:#818cf8; font-size:0.95rem;">❓ Pertanyaan Edukasi</h3>
+        <p id="promptLevelInfo" style="font-size:0.75rem; color:#fbbf24; font-weight:bold; margin:6px 0;"></p>
+        <p style="font-size:0.85rem;">Apakah Anda ingin menjawab soal untuk mendapat bonus langkah atau lewati?</p>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button onclick="acceptQuestionChallenge()" style="flex:1; background:#10b981;">Jawab (+Poin)</button>
+            <button onclick="skipQuestionChallenge()" style="flex:1; background:#64748b;">Skip (Lewati)</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PERTANYAAN BONUS -->
+<div id="questionModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 id="qCategoryTitle" style="color:#818cf8; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;"></h3>
+        <p id="qLevelInfo" style="font-size:0.7rem; color:#fbbf24; font-weight:bold;"></p>
+        <p id="qText" style="font-size: 0.85rem; line-height:1.3; font-weight:bold;"></p>
+        
+        <div id="qChoices" style="display:flex; flex-direction:column; gap:6px;"></div>
+        
+        <div id="qFeedbackBanner" class="feedback-banner hidden"></div>
+        <button id="qNextBtn" class="hidden" onclick="closeQuestionModal()" style="background:#4f46e5; margin-top:4px;">Lanjutkan Permainan</button>
+    </div>
+</div>
+
+<!-- MODAL KARTU KESEMPATAN -->
+<div id="chanceModal" class="modal hidden">
+    <div class="modal-content" style="text-align:center;">
+        <h3 style="color:#f59e0b; font-size:0.95rem;">❗ Kartu Kesempatan Didapatkan!</h3>
+        <div id="chanceCategory" style="font-weight:bold; font-size:0.8rem; color:#fbbf24;"></div>
+        <p id="chanceText" style="font-size:0.85rem; margin:8px 0;"></p>
+        <button onclick="closeChanceModal()">Simpan ke Inventory</button>
+    </div>
+</div>
+
+<script>
+    const totalCells = 100;
+    
+    const ladders = [
+        { start: 3, end: 22 }, { start: 8, end: 26 }, { start: 15, end: 37 },
+        { start: 21, end: 42 }, { start: 28, end: 54 }, { start: 36, end: 57 },
+        { start: 44, end: 65 }, { start: 51, end: 72 }, { start: 62, end: 83 },
+        { start: 71, end: 92 }, { start: 78, end: 97 }, { start: 85, end: 96 }
+    ];
+
+    const snakes = [
+        { start: 24, end: 5 }, { start: 43, end: 18 }, { start: 56, end: 25 },
+        { start: 69, end: 33 }, { start: 88, end: 52 }, { start: 98, end: 64 }
+    ];
+
+    const chanceCells = [4, 10, 16, 23, 30, 38, 45, 50, 58, 66, 73, 80, 87, 91, 99];
+
+    let chanceCardsBank = [
+        { id: 1, category: "[ATTACK]", title: "Skip Turn Lawan", desc: "Melewati 1 kali giliran pemain berikutnya." },
+        { id: 2, category: "[ATTACK]", title: "Mundurkan Lawan 3 Langkah", desc: "Memaksa pemain berikutnya mundur 3 langkah." },
+        { id: 3, category: "[BUFF]", title: "Langkah Ekstra +2", desc: "Mendapatkan bonus 2 langkah langsung maju." },
+        { id: 4, category: "[BUFF]", title: "Langkah Ekstra +3", desc: "Mendapatkan bonus 3 langkah langsung maju." },
+        { id: 5, category: "[DEFENSE]", title: "Perisai Checkpoint", desc: "Melindungi kamu dari efek dikick pemain lain untuk 1 turn." }
+    ];
+
+    // Bank Soal 60 Pertanyaan Lengkap
+    let questionsBank = [
+        // KATEGORI 1: FIXED ASSET (IDs 1-8)
+        { id: 1, category: "FIXED ASSET", level: 1, q: "Berdasarkan klasifikasi aset, pernyataan yang tepat adalah ….", choices: {A: "Aset lancar terdiri atas tanah, bangunan, dan kendaraan", B: "Aset tidak berwujud terdiri atas mesin dan bangunan", C: "Aset tidak lancar dibagi menjadi aset berwujud dan aset tidak berwujud", D: "Kas dan persediaan termasuk aset tidak lancar"}, a: "C", points: 1 },
+        { id: 2, category: "FIXED ASSET", level: 1, q: "Aset tetap berikut ini yang TIDAK mengalami penyusutan/depresiasi karena memiliki masa manfaat yang tidak terbatas adalah...", choices: {A: "Bangunan dan Prasarana", B: "Mesin dan Peralatan", C: "Tanah", D: "Kendaraan"}, a: "C", points: 1 },
+        { id: 3, category: "FIXED ASSET", level: 2, q: "Perusahaan membeli gedung yang akan digunakan sebagai kantor selama sepuluh tahun. Gedung tersebut memiliki bentuk fisik dan biaya perolehan yang dapat diukur secara andal. Karakteristik penggunaan aset tetap yang ditunjukkan adalah ….", choices: {A: "Digunakan untuk dijual kembali", B: "Digunakan untuk tujuan administratif", C: "Digunakan sebagai persediaan", D: "Digunakan untuk dikonsumsi dalam waktu singkat"}, a: "B", points: 2 },
+        { id: 4, category: "FIXED ASSET", level: 2, q: "Berapa ketetapan nilai residu aset tetap yang berlaku menurut kebijakan di PT Santos Jaya Abadi (SJA)?", choices: {A: "Rp0", B: "Rp1", C: "Rp5.000.000", D: "10% dari nilai perolehan"}, a: "B", points: 2 },
+        { id: 5, category: "FIXED ASSET", level: 2, q: "Berdasarkan PMK No. 72 Tahun 2023, berapa masa manfaat dan tarif penyusutan metode Garis Lurus (Straight Line) untuk harta berwujud Bukan Bangunan Kelompok 2?", choices: {A: "Masa manfaat 4 tahun, tarif 25%", B: "Masa manfaat 8 tahun, tarif 12,5%", C: "Masa manfaat 16 tahun, tarif 12,5%", D: "Masa manfaat 20 tahun, tarif 5%"}, a: "B", points: 2 },
+        { id: 6, category: "FIXED ASSET", level: 3, q: "Apa fungsi utama persetujuan budget dalam alur pembelian aset tetap?", choices: {A: "Memastikan barang telah diterima di gudang", B: "Memastikan barang telah diberi barcode", C: "Memastikan LPB telah divalidasi oleh FA", D: "Memastikan pengajuan anggaran melalui tahapan persetujuan yang ditentukan"}, a: "D", points: 3 },
+        { id: 7, category: "FIXED ASSET", level: 4, q: "Dalam tahap Pengakuan Saat Modul FA, akun Perlengkapan didebit dan Perlengkapan (aset clearing) dikredit. Pencatatan ini menunjukkan bahwa ….", choices: {A: "Aset telah dipindahkan dari akun clearing ke akun aset yang sesuai dalam modul Fixed Asset", B: "Perusahaan membatalkan pembelian aset", C: "Perusahaan melakukan pembayaran uang muka", D: "Perusahaan mengakui seluruh nilai transaksi sebagai beban operasional"}, a: "A", points: 4 },
+        { id: 8, category: "FIXED ASSET", level: 4, q: "Proses mentransfer data transaksi aset dari modul AP ke FA secara otomatis tanpa penginputan manual disebut dengan proses...", choices: {A: "Asset Clearing", B: "Mass Additions", C: "GL Posting", D: "Validate Invoice"}, a: "B", points: 4 },
+
+        // KATEGORI 2: CIP (IDs 9-14)
+        { id: 9, category: "CIP", level: 1, q: "Apa kepanjangan CIP dalam konteks aset?", choices: {A: "Construction in Progress", B: "Cash in Payment", C: "Cost in Purchase", D: "Control in Process"}, a: "A", points: 1 },
+        { id: 10, category: "CIP", level: 1, q: "Apa istilah Indonesia yang umum digunakan untuk CIP?", choices: {A: "Beban dibayar di muka", B: "Aset Dalam Penyelesaian", C: "Persediaan barang jadi", D: "Utang usaha"}, a: "B", points: 1 },
+        { id: 11, category: "CIP", level: 2, q: "CIP digunakan untuk mencatat nilai apa?", choices: {A: "Barang habis pakai", B: "Aset yang sudah dijual", C: "Aset yang masih dalam proses dan belum siap digunakan", D: "Biaya makan karyawan"}, a: "C", points: 2 },
+        { id: 12, category: "CIP", level: 3, q: "Apa yang umumnya dilakukan setelah aset CIP selesai dan siap digunakan?", choices: {A: "Menghapus semua dokumen", B: "Membiarkannya selamanya di CIP", C: "Mengubahnya menjadi pendapatan", D: "Melakukan clearing ke akun aset yang sesuai"}, a: "D", points: 3 },
+        { id: 13, category: "CIP", level: 4, q: "Berapa nomor akun Aset Dalam Penyelesaian yang disebutkan dalam materi SJA?", choices: {A: "12501001", B: "12501005", C: "12501009", D: "21305000"}, a: "C", points: 4 },
+        { id: 14, category: "CIP", level: 4, q: "Pada jurnal Gudang–Deliver, akun debit yang disebutkan untuk menampung nilai aset adalah …", choices: {A: "Receiving Accrual", B: "12501009 – Aset Dalam Penyelesaian", C: "Hutang Pembelian Aset Tetap", D: "Kas"}, a: "B", points: 4 },
+
+        // KATEGORI 3: EXPENSE ASSET (IDs 15-22)
+        { id: 15, category: "EXPENSE ASSET", level: 1, q: "Apa kepanjangan EXA dalam materi SJA?", choices: {A: "Extra Account", B: "Expense Asset", C: "External Asset", D: "Expense Account"}, a: "B", points: 1 },
+        { id: 16, category: "EXPENSE ASSET", level: 2, q: "Berapa batas nilai per unit EXA dalam materi internal SJA?", choices: {A: "Kurang dari Rp1 juta", B: "Kurang dari Rp3 juta", C: "Kurang dari Rp5 juta", D: "Kurang dari Rp10 juta"}, a: "C", points: 2 },
+        { id: 17, category: "EXPENSE ASSET", level: 2, q: "Menurut karakteristik EXA di SJA, berapa lama barang dapat digunakan?", choices: {A: "Kurang dari satu bulan", B: "Hanya satu kali pemakaian", C: "Maksimal enam bulan", D: "Lebih dari satu tahun"}, a: "D", points: 2 },
+        { id: 18, category: "EXPENSE ASSET", level: 2, q: "Bagaimana EXA dicatat menurut materi internal SJA?", choices: {A: "Sebagai biaya saat perolehan", B: "Selalu sebagai aset tetap", C: "Sebagai utang usaha", D: "Tidak perlu dicatat"}, a: "A", points: 2 },
+        { id: 19, category: "EXPENSE ASSET", level: 2, q: "Manakah contoh barang EXA yang disebut dalam materi?", choices: {A: "Biji kopi untuk produksi", B: "Gedung pabrik", C: "Keyboard komputer", D: "Bahan baku kopi"}, a: "C", points: 2 },
+        { id: 20, category: "EXPENSE ASSET", level: 3, q: "Apa nama report Oracle untuk membantu rekap pembelian EXA dalam materi?", choices: {A: "SJA – Asset Daily Summary", B: "SJA – Purchase Request Report", C: "SJA – GL Journals By Period By Keyword Tag", D: "SJA – Inventory Aging"}, a: "C", points: 3 },
+        { id: 21, category: "EXPENSE ASSET", level: 3, q: "Apa tujuan penggunaan keyword tag [EXA]?", choices: {A: "Membantu penelusuran dan rekap transaksi EXA", B: "Menghapus transaksi dari Oracle", C: "Menggantikan invoice", D: "Menentukan tanggal jatuh tempo"}, a: "A", points: 3 },
+        { id: 22, category: "EXPENSE ASSET", level: 4, q: "Apa risiko jika transaksi EXA tidak menggunakan keyword tag [EXA]?", choices: {A: "Transaksi bisa tidak tertarik ke rekap EXA sehingga sulit ditelusuri", B: "Semua jurnal otomatis benar", C: "PO otomatis dibatalkan", D: "Barang otomatis menjadi persediaan"}, a: "A", points: 4 },
+
+        // KATEGORI 4: IDENTIFIKASI FA (IDs 23-41)
+        { id: 23, category: "IDENTIFIKASI FA", level: 1, q: "Apa tujuan identifikasi aset?", choices: {A: "Menambah biaya pembelian", B: "Menghapus dokumen aset", C: "Memastikan aset dapat dikenali dan ditelusuri", D: "Mengganti semua nomor akun"}, a: "C", points: 1 },
+        { id: 24, category: "IDENTIFIKASI FA", level: 1, q: "Siapa yang membuat SPP (Surat Permintaan Pembelian) menurut alur pengadaan?", choices: {A: "Masing-masing user", B: "Pemasok", C: "Auditor eksternal", D: "Pelanggan"}, a: "A", points: 1 },
+        { id: 25, category: "IDENTIFIKASI FA", level: 1, q: "Apa kepanjangan PO dalam proses pengadaan?", choices: {A: "Purchase Order", B: "Payment Output", C: "Product Overview", D: "Purchase Operation"}, a: "A", points: 1 },
+        { id: 26, category: "IDENTIFIKASI FA", level: 2, q: "SPP dalam alur pengadaan diajukan ke bagian mana?", choices: {A: "Gudang", B: "Budget", C: "Marketing", D: "Security"}, a: "B", points: 2 },
+        { id: 27, category: "IDENTIFIKASI FA", level: 2, q: "Di aplikasi web apa SPP dibuat menurut materi proses aset SJA?", choices: {A: "Canva", B: "Oracle saja", C: "K2", D: "PowerPoint"}, a: "C", points: 2 },
+        { id: 28, category: "IDENTIFIKASI FA", level: 2, q: "Setelah anggaran disetujui, siapa yang membuat PO?", choices: {A: "Tim FA", B: "Tim gudang", C: "User pemohon", D: "Procurement"}, a: "D", points: 2 },
+        { id: 29, category: "IDENTIFIKASI FA", level: 2, q: "Apa yang dilakukan gudang setelah barang diterima?", choices: {A: "Langsung menghapus PO", B: "Melakukan receipt sesuai proses", C: "Membuat anggaran baru", D: "Menerbitkan SPP baru"}, a: "B", points: 2 },
+        { id: 30, category: "IDENTIFIKASI FA", level: 2, q: "Informasi apa yang membantu mengidentifikasi aset secara tepat?", choices: {A: "Warna favorit pemilik", B: "Menu makan siang", C: "Nomor telepon pelanggan", D: "Nomor aset, deskripsi, lokasi, dan penanggung jawab"}, a: "D", points: 2 },
+        { id: 31, category: "IDENTIFIKASI FA", level: 3, q: "Dokumen apa yang mendukung proses penerimaan barang menurut materi?", choices: {A: "Daftar hadir", B: "Slip cuti", C: "Delivery Note yang ditandatangani penerima", D: "Laporan penjualan"}, a: "C", points: 3 },
+        { id: 32, category: "IDENTIFIKASI FA", level: 3, q: "Apa yang dimaksud dengan mutasi aset?", choices: {A: "Perubahan atau perpindahan aset, misalnya lokasi atau penanggung jawab", B: "Pembelian makanan kantor", C: "Penghapusan seluruh laporan keuangan", D: "Pembayaran gaji"}, a: "A", points: 3 },
+        { id: 33, category: "IDENTIFIKASI FA", level: 3, q: "Jika aset dipindahkan ke departemen lain, apa yang sebaiknya dilakukan?", choices: {A: "Tidak perlu memberi tahu siapa pun", B: "Memperbarui data mutasi sesuai prosedur perusahaan", C: "Langsung menghapus aset dari daftar", D: "Membuat aset baru tanpa pemeriksaan"}, a: "B", points: 3 },
+        { id: 34, category: "IDENTIFIKASI FA", level: 3, q: "Pada transaksi pembelian barang impor berupa Pouch Dispenser dari Jepang, kode akun dan deskripsi yang digunakan untuk mencatat Uang Muka Pembelian Aktiva Tetap adalah...", choices: {A: "12501005 – Perlengkapan", B: "12907000 – Uang Muka Pembelian Aktiva Tetap", C: "21305000 – Hutang Pembelian Aktiva Tetap", D: "99040000 – Receiving Accrual"}, a: "B", points: 3 },
+        { id: 35, category: "IDENTIFIKASI FA", level: 4, q: "Mengapa mutasi aset perlu didokumentasikan?", choices: {A: "Agar jumlah aset selalu bertambah", B: "Agar aset tidak perlu diperiksa", C: "Agar riwayat perpindahan dan tanggung jawab dapat ditelusuri", D: "Agar aset otomatis menjadi EXA"}, a: "C", points: 4 },
+        { id: 36, category: "IDENTIFIKASI FA", level: 4, q: "Pada jurnal Gudang–Receive, akun kredit yang digunakan dalam materi adalah …", choices: {A: "99040000 – Receiving Accrual", B: "99030000 – Receiving Inspection", C: "Kas", D: "Beban penyusutan"}, a: "A", points: 4 },
+        { id: 37, category: "IDENTIFIKASI FA", level: 4, q: "Saat AP Staff melakukan Validate, akun kredit dalam materi adalah …", choices: {A: "Receiving Inspection", B: "Receiving Accrual", C: "Beban penyusutan", D: "21305000 – Hutang Pembelian Aset Tetap"}, a: "D", points: 4 },
+        { id: 38, category: "IDENTIFIKASI FA", level: 4, q: "Saat tim gudang melakukan Deliver barang berupa perlengkapan (Analytical Balance) yang baru datang, jurnal apakah yang terbentuk pada Modul Inventory/Receiving?", choices: {A: "(D) Receiving Inspection | (K) Receiving Accrual", B: "(D) Perlengkapan (aset clearing) - 12501005 | (K) Receiving Inspection - 99030000", C: "(D) Utang Pembelian FA - 21305000 | (K) Bank Mandiri - 11102001", D: "(D) Perlengkapan - 12501005 | (K) Perlengkapan (aset clearing) - 12501005"}, a: "B", points: 4 },
+        { id: 39, category: "IDENTIFIKASI FA", level: 4, q: "Ketika transaksi pembelian aset tetap yang dikenakan biaya perbaikan/jasa dipotong PPh Pasal 23 (2%), kode akun apakah yang digunakan untuk menampung pemotongan PPh tersebut pada saat pembayaran/pelunasan di AP/Cash Management?", choices: {A: "11702001", B: "21305000", C: "21401003", D: "81990005"}, a: "C", points: 4 },
+        { id: 40, category: "IDENTIFIKASI FA", level: 4, q: "Setelah proses AP Validate dan Apply Uang Muka selesai, proses apakah yang dijalankan pada modul FA untuk memindahkan saldo dari akun perantara Perlengkapan (Aset Clearing) ke akun Perlengkapan yang definitif?", choices: {A: "FA Receive", B: "FA Deliver", C: "FA Post Mass Addition", D: "FA Depreciation Run"}, a: "C", points: 4 },
+        { id: 41, category: "IDENTIFIKASI FA", level: 5, q: "PT SJA membayar Uang Muka ke-1 sebesar JPY 39.902.400 dengan kurs IDR 106,10/JPY (total Rp4.233.644.640,00) dan Uang Muka ke-2 sebesar JPY 59.853.600 dengan kurs IDR 110,75/JPY (total Rp6.628.786.200,00). Saat barang datang dan dilakukan receipt pada kurs IDR 110,63/JPY (total tagihan Rp11.036.006.280,00), akun manakah yang dikredit saat Apply Uang Muka di Modul Payables untuk menyeimbangkan transaksi?", choices: {A: "(K) Laba Selisih Kurs Yang Terealisasi - 81200001 sebesar Rp173.575.440,00", B: "(K) Beban Selisih Kurs - 81200002 sebesar Rp173.575.440,00", C: "(K) Hutang Pembelian Aktiva Tetap - 21305000 sebesar Rp11.036.006.280,00", D: "(K) Pembulatan - 81990005 sebesar Rp0,01"}, a: "A", points: 5 },
+
+        // KATEGORI 5: INTANGIBLE ASSETS (IDs 42-51)
+        { id: 42, category: "INTANGIBLE ASSETS", level: 1, q: "Berdasarkan PSAK 238, apa definisi dari Aset Tak Berwujud?", choices: {A: "Aset moneter yang memiliki wujud fisik dan dapat dikonsumsi dalam satu periode", B: "Aset non-moneter yang dapat diidentifikasi dan tidak mempunyai wujud fisik", C: "Aset lancar yang diperjualbelikan untuk kegiatan operasional harian", D: "Aset tetap yang disusutkan menggunakan metode saldo menurun ganda"}, a: "B", points: 1 },
+        { id: 43, category: "INTANGIBLE ASSETS", level: 1, q: "Di PT Santos Jaya Abadi (SJA), jenis Aset Tidak Berwujud yang diakui secara spesifik HANYA terdiri dari...", choices: {A: "Paten & Hak Cipta", B: "Goodwill & Lisensi", C: "Software & Merek", D: "Franchise & Hak Sewa"}, a: "C", points: 1 },
+        { id: 44, category: "INTANGIBLE ASSETS", level: 2, q: "Manakah metode amortisasi yang secara resmi digunakan oleh PT Santos Jaya Abadi (SJA) untuk mengamortisasi Aset Tidak Berwujudnya?", choices: {A: "Double Declining Method (Saldo Menurun Ganda)", B: "Straight Line Method / STL (Garis Lurus)", C: "Units of Production Method (Jumlah Unit Produksi)", D: "Sum-of-the-Years'-Digits Method (Jumlah Angka Tahun)"}, a: "B", points: 2 },
+        { id: 45, category: "INTANGIBLE ASSETS", level: 2, q: "Berapa lama masa manfaat dan metode amortisasi yang ditetapkan di SJA untuk aset tidak berwujud jenis Software serta Merek Goodday?", choices: {A: "Software: 4 tahun (STL); Merek Goodday: 20 tahun (STL)", B: "Software: 8 tahun (STL); Merek Goodday: 10 tahun (STL)", C: "Software: 4 tahun (Double Declining); Merek Goodday: 16 tahun (STL)", D: "Software: 1 tahun (STL); Merek Goodday: 5 tahun (STL)"}, a: "A", points: 2 },
+        { id: 46, category: "INTANGIBLE ASSETS", level: 3, q: "Berapa kode akun Chart of Accounts (COA) yang digunakan di SJA untuk mencatat Aset Tidak Berwujud jenis Software dan Akumulasi Amortisasi Software?", choices: {A: "12801001 dan 12801002", B: "12701001 dan 12701002", C: "71520004 dan 72520001", D: "12501005 dan 12501105"}, a: "B", points: 3 },
+        { id: 47, category: "INTANGIBLE ASSETS", level: 3, q: "Ketika dilakukan rekap/reklasifikasi nilai Merek Dagang dari akun perantara (Aset Clearing) ke akun Aset Definitif di SJA, bagaimana pencatatan jurnalnya?", choices: {A: "(D) Merek Dagang - 12801001 | (K) Merek Dagang (Aset Clearing) - 12801001", B: "(D) Merek Dagang (Aset Clearing) - 12801001 | (K) Utang Pembelian Aset Tetap - 21305000", C: "(D) Beban Amortisasi - 72520003 | (K) Akumulasi Amortisasi Merek Dagang - 12801002", D: "(D) Software - 12701001 | (K) Kas/Hutang"}, a: "A", points: 3 },
+        { id: 48, category: "INTANGIBLE ASSETS", level: 4, q: "PT SJA mendaftarkan merek baru \"Goodbai\" dengan rincian biaya: Biaya Pendaftaran Rp2.800.000, Jasa Konsultan Rp2.000.000, Biaya Iklan/Promosi Rp10.000.000, serta Biaya Riset & Pengecekan Nama Rp1.200.000. Berapa nilai yang dapat dikapitalisasi sebagai Cost Merek Dagang tersebut?", choices: {A: "Rp16.000.000,00", B: "Rp6.000.000,00", C: "Rp4.800.000,00", D: "Rp2.800.000,00"}, a: "B", points: 4 },
+        { id: 49, category: "INTANGIBLE ASSETS", level: 4, q: "Dalam pembuatan Website Rekrutmen 2026, dikeluarkan biaya-biaya: Jasa Programmer Rp45.000.000, Desain & DB Rp15.000.000, Testing & Debugging Rp10.000.000, Pelatihan HR Rp2.000.000, dan Maintenance Rp5.000.000. Komponen biaya manakah yang BOLEH dikapitalisasi ke dalam Cost Software?", choices: {A: "Seluruh biaya senilai Total Rp77.000.000,00", B: "Jasa Programmer, Desain DB, dan Testing & Debugging (Total Rp70.000.000,00)", C: "Jasa Programmer dan Pelatihan HR saja (Total Rp47.000.000,00)", D: "Hanya Jasa Programmer senilai Rp45.000.000,00"}, a: "B", points: 4 },
+        { id: 50, category: "INTANGIBLE ASSETS", level: 5, q: "Dari soal nomor 48, jika Merek \"Goodbai\" dikapitalisasi sebesar Rp6.000.000,00 dengan umur ekonomis 20 tahun (STL), berapa nilai beban amortisasi bulanan dan nilai buku aset tersebut pada akhir bulan pertama (31 Oktober 2026)?", choices: {A: "Amortisasi Bulanan: Rp300.000,00; Nilai Buku: Rp5.700.000,00", B: "Amortisasi Bulanan: Rp25.000,00; Nilai Buku: Rp5.975.000,00", C: "Amortisasi Bulanan: Rp50.000,00; Nilai Buku: Rp5.950.000,00", D: "Amortisasi Bulanan: Rp12.500,00; Nilai Buku: Rp5.987.500,00"}, a: "B", points: 5 },
+        { id: 51, category: "INTANGIBLE ASSETS", level: 5, q: "Berdasarkan nilai kapitalisasi Cost Software sebesar Rp70.000.000,00 dengan masa manfaat 4 tahun (STL), berapa beban amortisasi per bulan dan nilai buku software tersebut setelah amortisasi 1 bulan per 31 Oktober 2026?", choices: {A: "Amortisasi Bulanan: Rp17.500.000,00; Nilai Buku: Rp52.500.000,00", B: "Amortisasi Bulanan: Rp1.458.333,33; Nilai Buku: Rp68.541.666,67", C: "Amortisasi Bulanan: Rp1.250.000,00; Nilai Buku: Rp68.750.000,00", D: "Amortisasi Bulanan: Rp2.916.666,67; Nilai Buku: Rp67.083.333,33"}, a: "B", points: 5 },
+
+        // KATEGORI 6: PSAK 73 / LEASING (IDs 52-60)
+        { id: 52, category: "PSAK 73 / LEASING", level: 1, q: "Berdasarkan PSAK 73, bagaimana perlakuan akuntansi awal bagi penyewa (lessee) untuk kontrak sewa pembiayaan kendaraan?", choices: {A: "Mengakui seluruh pembayaran sewa langsung sebagai beban operasional pada saat dibayar", B: "Mengakui aset hak guna dan liabilitas sewa di neraca", C: "Mengakui sebagai aset tetap milik sendiri sejak hari pertama tanpa mencatat liabilitas", D: "Hanya mencatatnya sebagai transaksi off-balance sheet pada catatan atas laporan keuangan"}, a: "B", points: 1 },
+        { id: 53, category: "PSAK 73 / LEASING", level: 2, q: "Metode penyusutan apa yang umumnya digunakan oleh penyewa untuk Aset Hak Guna kendaraan leasing jika tidak ada informasi khusus lain?", choices: {A: "Metode saldo menurun ganda", B: "Metode garis lurus", C: "Metode jumlah angka tahun", D: "Metode persentase penjualan"}, a: "B", points: 2 },
+        { id: 54, category: "PSAK 73 / LEASING", level: 3, q: "Bagaimana pencatatan jurnal saat pembayaran angsuran bulanan sewa pembiayaan kendaraan dilakukan oleh penyewa?", choices: {A: "(D) Beban Sewa, (K) Kas/Bank", B: "(D) Aset Hak Guna, (K) Kas/Bank", C: "(D) Liabilitas Sewa & Beban Bunga, (K) Kas/Bank", D: "(D) Beban Penyusutan, (K) Akumulasi Penyusutan"}, a: "C", points: 3 },
+        { id: 55, category: "PSAK 73 / LEASING", level: 3, q: "Komponen apa saja yang membentuk nilai awal pengukuran Aset Hak Guna (Right-of-Use Asset) kendaraan leasing?", choices: {A: "Hanya harga pasar kendaraan saat transaksi dilakukan", B: "Nilai kini liabilitas sewa, pembayaran sewa di muka, biaya langsung awal, dan estimasi biaya restorasi (dikurangi insentif sewa)", C: "Seluruh jumlah pembayaran sewa dari awal hingga akhir periode tanpa didiskontokan", D: "Biaya perolehan ditambah biaya asuransi tahunan yang dibayar di muka"}, a: "B", points: 3 },
+        { id: 56, category: "PSAK 73 / LEASING", level: 4, q: "Dalam konteks pengukuran liabilitas sewa kendaraan, tingkat diskonto apa yang harus digunakan oleh penyewa jika suku bunga implisit dalam sewa tidak dapat ditentukan dengan mudah?", choices: {A: "Suku bunga acuan bank sentral", B: "Suku bunga inflasi tahunan", C: "Suku bunga pinjaman inkremental penyewa (incremental borrowing rate)", D: "Suku bunga pengembalian investasi (return on investment)"}, a: "C", points: 4 },
+        { id: 57, category: "PSAK 73 / LEASING", level: 4, q: "Suatu perusahaan menyewa armada kendaraan dengan nilai kini pembayaran sewa sebesar Rp500.000.000, biaya langsung awal Rp10.000.000, dan insentif sewa yang diterima dari lessor sebesar Rp5.000.000. Berapa nilai awal Aset Hak Guna yang harus diakui?", choices: {A: "Rp500.000.000", B: "Rp510.000.000", C: "Rp505.000.000", D: "Rp495.000.000"}, a: "C", points: 4 },
+        { id: 58, category: "PSAK 73 / LEASING", level: 4, q: "Manakah pernyataan yang paling tepat mengenai pengungkapan (disclosure) aset hak guna kendaraan leasing dalam laporan keuangan penyewa menurut PSAK 73?", choices: {A: "Disajikan menyatu dengan aset tetap tanpa perlu pengungkapan terpisah", B: "Penyewa harus mengungkapkan jumlah beban penyusutan aset hak guna per kelompok aset dan beban bunga liabilitas sewa secara terpisah", C: "Pengungkapan hanya diperlukan untuk sewa jangka pendek dan sewa bernilai rendah", D: "Hanya perlu dicantumkan pada bagian arus kas dari aktivitas investasi"}, a: "B", points: 4 },
+        { id: 59, category: "PSAK 73 / LEASING", level: 5, q: "Bagaimana pengaruh modifikasi kontrak sewa kendaraan (misalnya penambahan unit kendaraan dengan penyesuaian harga yang sepadan) terhadap pencatatan akuntansi jika dicatat sebagai sewa terpisah?", choices: {A: "Menyesuaikan kembali aset hak guna dan liabilitas sewa pada kontrak lama secara retrospektif", B: "Dicatat secara terpisah dari kontrak awal tanpa mengubah akuntansi kontrak eksisting", C: "Menghentikan pengakuan kontrak lama dan mencatat seluruh transaksi sebagai kerugian modifikasi", D: "Mengakumulasikan biaya baru langsung ke dalam beban operasional periode berjalan"}, a: "B", points: 5 },
+        { id: 60, category: "PSAK 73 / LEASING", level: 5, q: "Sebuah perusahaan melakukan sale and leaseback (jual dan sewa-balik) atas kendaraan operasionalnya. Jika pengalihan aset bukan merupakan penjualan menurut PSAK 72, bagaimana perlakuan oleh penjual-penyewa (seller-lessee)?", choices: {A: "Menghapus kendaraan dari laporan posisi keuangan dan mengakui keuntungan/kerugian penjualan", B: "Terus mengakui aset kendaraan tersebut dan mencatat kas yang diterima sebagai liabilitas keuangan (financial liability)", C: "Menghapus kendaraan dan menguji penurunan nilai (impairment) secara langsung", D: "Mengakui pendapatan tangguhan yang diamortisasi selama masa sewa"}, a: "B", points: 5 }
+    ];
+
+    const pawnColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'];
+
+    let gameState = {
+        players: [
+            { name: "Pemain 1", pos: 0, card: null, skipTurn: false, turnCount: 0 },
+            { name: "Pemain 2", pos: 0, card: null, skipTurn: false, turnCount: 0 },
+            { name: "Pemain 3", pos: 0, card: null, skipTurn: false, turnCount: 0 },
+            { name: "Pemain 4", pos: 0, card: null, skipTurn: false, turnCount: 0 }
+        ],
+        currentTurn: 0,
+        currentUser: { role: null, slot: null },
+        isRolling: false,
+        isAnimating: false,
+        usedQuestionIds: [] // Melacak soal yang sudah pernah keluar agar tidak berulang
+    };
+
+    let editingQuestionId = null;
+    let editingCardId = null;
+    let isQuestionListHidden = false;
+    let activeQuestionData = null;
+
+    function getPawnSvg(color) {
+        return `<svg class="pawn-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="105" rx="35" ry="10" fill="rgba(0,0,0,0.4)"/>
+            <path d="M 20 105 C 20 95, 30 90, 35 85 L 38 60 C 35 55, 35 45, 40 40 C 30 35, 35 15, 50 15 C 65 15, 70 35, 60 40 C 65 45, 65 55, 62 60 L 65 85 C 70 90, 80 95, 80 105 Z" fill="${color}" stroke="#ffffff" stroke-width="4"/>
+            <circle cx="50" cy="30" r="14" fill="#ffffff" opacity="0.3"/>
+            <ellipse cx="50" cy="102" rx="28" ry="5" fill="#ffffff" opacity="0.4"/>
+        </svg>`;
+    }
+
+    function switchTab(tab) {
+        const tabs = document.querySelectorAll('.tab');
+        if(tabs.length >= 2) {
+            tabs.forEach(t => t.classList.remove('active'));
+            if(tab === 'player') {
+                tabs[0].classList.add('active');
+                document.getElementById('playerForm').classList.remove('hidden');
+                document.getElementById('gmForm').classList.add('hidden');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('playerForm').classList.add('hidden');
+                document.getElementById('gmForm').classList.remove('hidden');
+            }
+        }
+    }
+
+    function loginPlayer() {
+        const name = document.getElementById('teamNameInput').value.trim();
+        const slot = parseInt(document.getElementById('playerSlotInput').value);
+        if(!name) { alert("Masukkan nama tim terlebih dahulu!"); return; }
+        
+        gameState.players[slot].name = name;
+        gameState.currentUser = { role: 'player', slot: slot };
+        startGameUI();
+    }
+
+    function loginGM() {
+        const pass = document.getElementById('gmPassInput').value;
+        if(pass !== "1234") { alert("Passcode salah! Gunakan 1234"); return; }
+
+        gameState.currentUser = { role: 'gm', slot: null };
+        startGameUI();
+    }
+
+    function logout() {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('gmPanel').classList.add('hidden');
+    }
+
+    function startGameUI() {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('gameScreen').classList.remove('hidden');
+        if(gameState.currentUser.role === 'gm') {
+            document.getElementById('gmPanel').classList.remove('hidden');
+            renderGMQuestions();
+            renderGMCards();
+        } else {
+            document.getElementById('gmPanel').classList.add('hidden');
+        }
+        renderBoard();
+        updateGameUI();
+        addLog("Game 10x10 dimulai! Sistem urutan 12 turn per player aktif.");
+    }
+
+    function renderBoard() {
+        const board = document.getElementById('boardGrid');
+        board.innerHTML = '';
+        
+        let gridArray = [];
+        for (let r = 9; r >= 0; r--) {
+            let row = [];
+            for (let c = 0; c < 10; c++) {
+                let cellNum = (r % 2 === 0) ? (r * 10 + c + 1) : (r * 10 + (9 - c) + 1);
+                row.push(cellNum);
+            }
+            gridArray.push(row);
+        }
+
+        gridArray.forEach(row => {
+            row.forEach(num => {
+                const cell = document.createElement('div');
+                let cellClass = 'cell';
+                if(chanceCells.includes(num)) cellClass += ' cell-c';
+
+                cell.className = cellClass;
+                cell.id = `cell-${num}`;
+                
+                let label = `<span class="cell-num">${num}</span>`;
+                if(chanceCells.includes(num)) label += `<span style="font-size:0.6rem;">❗</span>`;
+
+                cell.innerHTML = `<div>${label}</div><div class="tokens" id="tokens-${num}"></div>`;
+                board.appendChild(cell);
+            });
+        });
+
+        setTimeout(() => {
+            drawSnakesAndLaddersSvg();
+            updateTokens();
+        }, 100);
+    }
+
+    function getCellCoords(tileNum) {
+        const board = document.getElementById('boardGrid');
+        const rect = board.getBoundingClientRect();
+        const tileW = rect.width / 10;
+        const tileH = rect.height / 10;
+
+        const zeroBased = tileNum - 1;
+        const row = Math.floor(zeroBased / 10);
+        let col = zeroBased % 10;
+        if (row % 2 === 1) {
+            col = 9 - col;
+        }
+        const x = col * tileW + tileW / 2;
+        const y = rect.height - (row * tileH + tileH / 2);
+        return { x, y };
+    }
+
+    function drawSnakesAndLaddersSvg() {
+        const svg = document.getElementById('svgOverlay');
+        if(!svg) return;
+        svg.innerHTML = '';
+
+        ladders.forEach(ladder => {
+            const start = getCellCoords(ladder.start);
+            const end = getCellCoords(ladder.end);
+
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("transform", `translate(${start.x}, ${start.y}) rotate(${angle})`);
+
+            const width = 10;
+            const rungs = Math.floor(dist / 14);
+
+            let html = `<line x1="0" y1="${-width/2}" x2="${dist}" y2="${-width/2}" stroke="#8b4513" stroke-width="3" stroke-linecap="round"/>`;
+            html += `<line x1="0" y1="${width/2}" x2="${dist}" y2="${width/2}" stroke="#8b4513" stroke-width="3" stroke-linecap="round"/>`;
+
+            for (let i = 1; i <= rungs; i++) {
+                const rx = (dist / (rungs + 1)) * i;
+                html += `<line x1="${rx}" y1="${-width/2}" x2="${rx}" y2="${width/2}" stroke="#a0522d" stroke-width="2"/>`;
+            }
+            g.innerHTML = html;
+            svg.appendChild(g);
+        });
+
+        snakes.forEach(snake => {
+            const head = getCellCoords(snake.start);
+            const tail = getCellCoords(snake.end);
+
+            const dx = tail.x - head.x;
+            const dy = tail.y - head.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const midX = (head.x + tail.x) / 2 + (dy / dist) * 20;
+            const midY = (head.y + tail.y) / 2 - (dx / dist) * 20;
+
+            const d = `M ${head.x} ${head.y} Q ${midX} ${midY} ${tail.x} ${tail.y}`;
+            path.setAttribute("d", d);
+            path.setAttribute("stroke", "#dc2626");
+            path.setAttribute("stroke-width", "6");
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke-linecap", "round");
+
+            svg.appendChild(path);
+        });
+    }
+
+    function updateTokens() {
+        for(let i=0; i<=totalCells; i++) {
+            const el = document.getElementById(`tokens-${i}`);
+            if(el) el.innerHTML = '';
+        }
+        gameState.players.forEach((p, idx) => {
+            const tokenDiv = document.createElement('div');
+            tokenDiv.className = 'token-item';
+            tokenDiv.innerHTML = `${getPawnSvg(pawnColors[idx])}<div class="pawn-label">${p.name}</div>`;
+            
+            const targetCell = document.getElementById(`tokens-${p.pos}`);
+            if(targetCell) targetCell.appendChild(tokenDiv);
+        });
+    }
+
+    function updateGameUI() {
+        const p = gameState.players[gameState.currentTurn];
+        const turnEl = document.getElementById('turnInfo');
+        if(turnEl) turnEl.innerText = `Giliran: ${p.name} (Turn ke-${p.turnCount + 1}/12)`;
+        
+        let statusHTML = '';
+        gameState.players.forEach((player, idx) => {
+            const isActive = idx === gameState.currentTurn;
+            const hasCard = player.card ? `✅ ${player.card.title}` : '❌';
+            statusHTML += `
+            <div class="player-card ${isActive ? 'active' : ''}">
+                <div class="pawn-preview">${getPawnSvg(pawnColors[idx])}</div>
+                <div>
+                    <div style="font-weight:bold;">${player.name}</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Pos: ${player.pos} | T-${player.turnCount}/12</div>
+                </div>
+            </div>`;
+        });
+        const statusListEl = document.getElementById('playerStatusList');
+        if(statusListEl) statusListEl.innerHTML = statusHTML;
+
+        const isMyTurn = ((gameState.currentUser.role === 'player' && gameState.currentUser.slot === gameState.currentTurn) || gameState.currentUser.role === 'gm') && !gameState.isRolling && !gameState.isAnimating;
+        
+        const rollBtn = document.getElementById('rollDiceBtn');
+        if(rollBtn) {
+            rollBtn.disabled = !isMyTurn;
+            rollBtn.style.opacity = isMyTurn ? "1" : "0.4";
+        }
+
+        const useBtn = document.getElementById('useCardBtn');
+        if(useBtn) {
+            if(isMyTurn && p.card) {
+                useBtn.classList.remove('hidden');
+            } else {
+                useBtn.classList.add('hidden');
+            }
+        }
+
+        const roleText = gameState.currentUser.role === 'gm' ? 'Game Master' : gameState.players[gameState.currentUser.slot].name;
+        const roleInd = document.getElementById('roleIndicator');
+        if(roleInd) roleInd.innerText = `Role: ${roleText}`;
+    }
+
+    function addLog(text) {
+        const logs = document.getElementById('gameLogs');
+        if(logs) {
+            logs.innerHTML += `<div>> ${text}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+    }
+
+    function rollDice() {
+        if(gameState.isRolling || gameState.isAnimating) return;
+        
+        let p = gameState.players[gameState.currentTurn];
+        if(p.skipTurn) {
+            p.skipTurn = false;
+            addLog(`${p.name} melewati giliran karena efek kartu!`);
+            nextTurn();
+            return;
+        }
+
+        gameState.isRolling = true;
+        updateGameUI();
+
+        const dice3d = document.getElementById('dice3d');
+        dice3d.classList.add('rolling');
+
+        let rollResult = Math.floor(Math.random() * 6) + 1;
+
+        setTimeout(() => {
+            dice3d.classList.remove('rolling');
+            
+            const rotations = {
+                1: 'rotateX(0deg) rotateY(0deg)',
+                6: 'rotateY(180deg)',
+                2: 'rotateY(90deg)',
+                5: 'rotateY(-90deg)',
+                3: 'rotateX(-90deg)',
+                4: 'rotateX(90deg)'
+            };
+            dice3d.style.transform = rotations[rollResult];
+            gameState.isRolling = false;
+
+            addLog(`${p.name} mendapat angka ${rollResult}.`);
+            
+            let targetPos = Math.min(totalCells, p.pos + rollResult);
+            animatePawnSteps(p, targetPos);
+        }, 600);
+    }
+
+    function animatePawnSteps(player, targetPos) {
+        gameState.isAnimating = true;
+        updateGameUI();
+
+        let stepInterval = setInterval(() => {
+            if(player.pos < targetPos) {
+                player.pos++;
+                updateTokens();
+            } else {
+                clearInterval(stepInterval);
+                gameState.isAnimating = false;
+                
+                if(player.pos >= totalCells) {
+                    addLog(`🎉 SELAMAT! ${player.name} MEMENANGKAN GAME! 🎉`);
+                    alert(`🎉 SELAMAT! ${player.name} MENANG! 🎉`);
+                    return;
+                }
+
+                checkCellEvents(player);
+            }
+        }, 220);
+    }
+
+    function checkCellEvents(player) {
+        const ladder = ladders.find(l => l.start === player.pos);
+        if(ladder) {
+            addLog(`${player.name} naik tangga 🪜 dari pos ${player.pos} ke ${ladder.end}!`);
+            player.pos = ladder.end;
+            updateTokens();
+            setTimeout(() => promptBonusQuestion(player), 350);
+            return;
+        }
+
+        const snake = snakes.find(s => s.start === player.pos);
+        if(snake) {
+            addLog(`${player.name} tergelincir ular 🐍 dari pos ${player.pos} ke ${snake.end}!`);
+            player.pos = snake.end;
+            updateTokens();
+            setTimeout(() => promptBonusQuestion(player), 350);
+            return;
+        }
+
+        if(chanceCells.includes(player.pos)) {
+            triggerChanceCard(player);
+            return;
+        }
+
+        promptBonusQuestion(player);
+    }
+
+    function getCheckpoint(position) {
+        if (position >= 80) return 80;
+        if (position >= 60) return 60;
+        if (position >= 40) return 40;
+        if (position >= 20) return 20;
+        return 0;
+    }
+
+    function handleCellCollision(currentPlayer) {
+        if (currentPlayer.pos <= 0 || currentPlayer.pos >= totalCells) return;
+
+        const defender = gameState.players.find(p => p !== currentPlayer && p.pos === currentPlayer.pos);
+
+        if (defender) {
+            if(defender.card && defender.card.title.includes('Perisai')) {
+                addLog(`🛡️ ${defender.name} dilindungi Perisai Checkpoint!`);
+                defender.card = null;
+                return;
+            }
+
+            const checkpoint = getCheckpoint(defender.pos);
+            defender.pos = checkpoint;
+            addLog(`⚔️ ${currentPlayer.name} mendarat di petak ${currentPlayer.pos}! ${defender.name} dikick ke Checkpoint ${checkpoint}!`);
+            updateTokens();
+        }
+    }
+
+    // Pemetaan Topik Berdasarkan Urutan Turn Player (1-12)
+    function getTopicByCategoryForTurn(turnCount) {
+        // turnCount: 0 sampai 11
+        if (turnCount === 0 || turnCount === 1) return "FIXED ASSET";
+        if (turnCount === 2 || turnCount === 3) return "CIP";
+        if (turnCount === 4 || turnCount === 5) return "EXPENSE ASSET";
+        if (turnCount === 6 || turnCount === 7) return "IDENTIFIKASI FA";
+        if (turnCount === 8 || turnCount === 9) return "INTANGIBLE ASSETS";
+        return "PSAK 73 / LEASING";
+    }
+
+    function promptBonusQuestion(p) {
+        let currentTurnIndex = p.turnCount; // 0 s.d 11
+        let targetCategory = getTopicByCategoryForTurn(currentTurnIndex);
+        
+        document.getElementById('promptLevelInfo').innerText = `Turn ke-${currentTurnIndex + 1}/12 | Topik: ${targetCategory}`;
+        activeQuestionData = { player: p, category: targetCategory };
+        document.getElementById('promptQuestionModal').classList.remove('hidden');
+    }
+
+    function acceptQuestionChallenge() {
+        document.getElementById('promptQuestionModal').classList.add('hidden');
+        let p = activeQuestionData.player;
+        let category = activeQuestionData.category;
+        
+        // Filter soal sesuai kategori yang belum pernah keluar (no repeat)
+        let availableQ = questionsBank.filter(q => q.category === category && !gameState.usedQuestionIds.includes(q.id));
+        
+        // Jika habis di kategori tersebut, ambil dari kategori mana saja yang belum keluar
+        if(availableQ.length === 0) {
+            availableQ = questionsBank.filter(q => !gameState.usedQuestionIds.includes(q.id));
+        }
+        // Fallback mutlak jika seluruh bank soal habis
+        if(availableQ.length === 0) {
+            availableQ = questionsBank;
+        }
+
+        // Ambil secara acak (level random dari kategori tersebut)
+        let q = availableQ[Math.floor(Math.random() * availableQ.length)];
+        
+        // Tandai soal sudah keluar
+        if(!gameState.usedQuestionIds.includes(q.id)) {
+            gameState.usedQuestionIds.push(q.id);
+        }
+
+        activeQuestionData = { player: p, qObj: q };
+
+        document.getElementById('qCategoryTitle').innerText = `Kategori: ${q.category}`;
+        document.getElementById('qLevelInfo').innerText = `Level Kesulitan: Level ${q.level} | Bonus +${q.points} Langkah`;
+        document.getElementById('qText').innerText = q.q;
+        
+        const feedbackBanner = document.getElementById('qFeedbackBanner');
+        feedbackBanner.className = 'feedback-banner hidden';
+        document.getElementById('qNextBtn').classList.add('hidden');
+
+        const choicesDiv = document.getElementById('qChoices');
+        choicesDiv.innerHTML = '';
+
+        Object.keys(q.choices).forEach(key => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.id = `choice-btn-${key}`;
+            btn.innerText = `${key}. ${q.choices[key]}`;
+            btn.onclick = () => submitAnswer(key);
+            choicesDiv.appendChild(btn);
+        });
+
+        document.getElementById('questionModal').classList.remove('hidden');
+    }
+
+    function skipQuestionChallenge() {
+        document.getElementById('promptQuestionModal').classList.add('hidden');
+        let p = activeQuestionData.player;
+        addLog(`${p.name} memilih untuk melewati pertanyaan.`);
+        p.turnCount = Math.min(11, p.turnCount + 1); // Tambah hitungan turn player
+        handleCellCollision(p);
+        nextTurn();
+    }
+
+    function submitAnswer(selectedKey) {
+        let correctKey = activeQuestionData.qObj.a;
+        let p = activeQuestionData.player;
+        let bonus = activeQuestionData.qObj.points;
+
+        const choices = document.querySelectorAll('#qChoices .choice-btn');
+        choices.forEach(btn => btn.onclick = null);
+
+        const feedbackBanner = document.getElementById('qFeedbackBanner');
+        const selectedBtn = document.getElementById(`choice-btn-${selectedKey}`);
+        const correctBtn = document.getElementById(`choice-btn-${correctKey}`);
+
+        if(selectedKey === correctKey) {
+            if(selectedBtn) selectedBtn.classList.add('btn-correct');
+            feedbackBanner.innerText = `✅ JAWABAN BENAR! (+${bonus} Langkah)`;
+            feedbackBanner.className = 'feedback-banner correct';
+            
+            p.pos = Math.min(totalCells, p.pos + bonus);
+            addLog(`Jawaban Benar! ${p.name} maju +${bonus} langkah ke pos ${p.pos}.`);
+            updateTokens();
+        } else {
+            if(selectedBtn) selectedBtn.classList.add('btn-wrong');
+            if(correctBtn) correctBtn.classList.add('btn-correct');
+            
+            feedbackBanner.innerText = `❌ JAWABAN SALAH! Kunci Jawaban yang Benar: ${correctKey}`;
+            feedbackBanner.className = 'feedback-banner wrong';
+            addLog(`Jawaban Salah! ${p.name} tidak mendapat bonus.`);
+        }
+
+        p.turnCount = Math.min(11, p.turnCount + 1); // Tambah hitungan turn player
+        document.getElementById('qNextBtn').classList.remove('hidden');
+    }
+
+    function closeQuestionModal() {
+        document.getElementById('questionModal').classList.add('hidden');
+        let p = activeQuestionData.player;
+        handleCellCollision(p);
+        nextTurn();
+    }
+
+    function triggerChanceCard(p) {
+        if(chanceCardsBank.length === 0) {
+            addLog(`${p.name} mendarat di petak kesempatan, tetapi kartu kosong.`);
+            p.turnCount = Math.min(11, p.turnCount + 1);
+            nextTurn();
+            return;
+        }
+        const chosen = chanceCardsBank[Math.floor(Math.random() * chanceCardsBank.length)];
+        p.card = chosen;
+
+        document.getElementById('chanceCategory').innerText = chosen.category;
+        document.getElementById('chanceText').innerText = `${chosen.title}: ${chosen.desc}`;
+        document.getElementById('chanceModal').classList.remove('hidden');
+
+        addLog(`${p.name} mendapat Kartu Kesempatan ${chosen.category}: [${chosen.title}].`);
+    }
+
+    function closeChanceModal() {
+        document.getElementById('chanceModal').classList.add('hidden');
+        const p = gameState.players[gameState.currentTurn];
+        p.turnCount = Math.min(11, p.turnCount + 1);
+        handleCellCollision(p);
+        nextTurn();
+    }
+
+    function useCardAction() {
+        let p = gameState.players[gameState.currentTurn];
+        if(!p.card) return;
+
+        addLog(`${p.name} memakai Kartu: ${p.card.title}`);
+        
+        if(p.card.category === '[BUFF]') {
+            let bonus = p.card.title.includes('+3') ? 3 : 2;
+            p.pos = Math.min(totalCells, p.pos + bonus);
+            updateTokens();
+            handleCellCollision(p);
+        } else if(p.card.category === '[ATTACK]') {
+            let nextP = gameState.players[(gameState.currentTurn + 1) % 4];
+            if(p.card.title.includes('Skip')) {
+                nextP.skipTurn = true;
+                addLog(`${nextP.name} giliran berikutnya di-skip!`);
+            } else {
+                nextP.pos = Math.max(0, nextP.pos - 3);
+                updateTokens();
+                addLog(`${nextP.name} dimundurkan 3 langkah!`);
+            }
+        }
+
+        p.card = null;
+        updateGameUI();
+    }
+
+    function nextTurn() {
+        gameState.currentTurn = (gameState.currentTurn + 1) % 4;
+        updateGameUI();
+    }
+
+    function switchGMTab(tab) {
+        const qSection = document.getElementById('gmSectionQuestions');
+        const cSection = document.getElementById('gmSectionCards');
+        const qBtn = document.getElementById('gmTabQBtn');
+        const cBtn = document.getElementById('gmTabCBtn');
+
+        if(tab === 'questions') {
+            qSection.classList.remove('hidden');
+            cSection.classList.add('hidden');
+            qBtn.style.background = '#4f46e5';
+            cBtn.style.background = '#334155';
+        } else {
+            qSection.classList.add('hidden');
+            cSection.classList.remove('hidden');
+            qBtn.style.background = '#334155';
+            cBtn.style.background = '#d97706';
+        }
+    }
+
+    function toggleGMQuestionList() {
+        const wrapper = document.getElementById('gmQuestionListWrapper');
+        const btn = document.getElementById('toggleListBtn');
+        isQuestionListHidden = !isQuestionListHidden;
+        if(isQuestionListHidden) {
+            wrapper.classList.add('hidden');
+            btn.innerText = 'Tampilkan';
+        } else {
+            wrapper.classList.remove('hidden');
+            btn.innerText = 'Sembunyikan';
+        }
+    }
+
+    function renderGMQuestions() {
+        const tbody = document.getElementById('gmQuestionTable');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        questionsBank.forEach((q) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${q.id}</td>
+                <td><span style="color:#fbbf24; font-weight:bold;">${q.level}</span></td>
+                <td style="font-size:0.6rem; color:#818cf8;">${q.category}</td>
+                <td>${q.q}</td>
+                <td>
+                    <button onclick="editQuestion(${q.id})" style="padding:2px 4px; font-size:0.65rem; background:#6366f1;">Edit</button>
+                    <button onclick="deleteQuestion(${q.id})" style="padding:2px 4px; font-size:0.65rem; background:#ef4444;">Hapus</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function saveQuestion() {
+        const cat = document.getElementById('editQCategory').value.trim() || 'FIXED ASSET';
+        const qText = document.getElementById('editQText').value.trim();
+        const optA = document.getElementById('editOptA').value.trim();
+        const optB = document.getElementById('editOptB').value.trim();
+        const optC = document.getElementById('editOptC').value.trim();
+        const optD = document.getElementById('editOptD').value.trim();
+        const correct = document.getElementById('editCorrectKey').value;
+        const level = parseInt(document.getElementById('editQLevel').value);
+
+        if(!qText || !optA || !optB || !optC || !optD) {
+            alert("Harap isi pertanyaan dan opsi jawaban!");
+            return;
+        }
+
+        if(editingQuestionId) {
+            const q = questionsBank.find(item => item.id === editingQuestionId);
+            if(q) {
+                q.category = cat;
+                q.q = qText;
+                q.choices = { A: optA, B: optB, C: optC, D: optD };
+                q.a = correct;
+                q.level = level;
+                q.points = level;
+            }
+        } else {
+            const newId = questionsBank.length ? Math.max(...questionsBank.map(item => item.id)) + 1 : 1;
+            questionsBank.push({
+                id: newId,
+                category: cat,
+                level: level,
+                q: qText,
+                choices: { A: optA, B: optB, C: optC, D: optD },
+                a: correct,
+                points: level
+            });
+        }
+
+        cancelEditQuestion();
+        renderGMQuestions();
+    }
+
+    function editQuestion(id) {
+        const q = questionsBank.find(item => item.id === id);
+        if(!q) return;
+
+        editingQuestionId = id;
+        document.getElementById('gmFormTitle').innerText = `Edit Soal #${id}`;
+        document.getElementById('editQCategory').value = q.category;
+        document.getElementById('editQText').value = q.q;
+        document.getElementById('editOptA').value = q.choices.A;
+        document.getElementById('editOptB').value = q.choices.B;
+        document.getElementById('editOptC').value = q.choices.C;
+        document.getElementById('editOptD').value = q.choices.D;
+        document.getElementById('editCorrectKey').value = q.a;
+        document.getElementById('editQLevel').value = q.level;
+
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+    }
+
+    function cancelEditQuestion() {
+        editingQuestionId = null;
+        document.getElementById('gmFormTitle').innerText = "Tambah Soal Baru";
+        document.getElementById('editQCategory').value = '';
+        document.getElementById('editQText').value = '';
+        document.getElementById('editOptA').value = '';
+        document.getElementById('editOptB').value = '';
+        document.getElementById('editOptC').value = '';
+        document.getElementById('editOptD').value = '';
+        document.getElementById('editQLevel').value = '1';
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+    }
+
+    function deleteQuestion(id) {
+        if(confirm("Hapus soal ini?")) {
+            questionsBank = questionsBank.filter(item => item.id !== id);
+            renderGMQuestions();
+        }
+    }
+
+    function renderGMCards() {
+        const tbody = document.getElementById('gmCardTable');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        chanceCardsBank.forEach((item) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:bold; color:#f59e0b;">${item.category}</td>
+                <td>${item.title}</td>
+                <td>${item.desc}</td>
+                <td>
+                    <button onclick="editChanceCard(${item.id})" style="padding:2px 4px; font-size:0.65rem; background:#f59e0b;">Edit</button>
+                    <button onclick="deleteChanceCard(${item.id})" style="padding:2px 4px; font-size:0.65rem; background:#ef4444;">Hapus</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function saveChanceCard() {
+        const cat = document.getElementById('editCardCategory').value;
+        const title = document.getElementById('editCardTitle').value.trim();
+        const desc = document.getElementById('editCardDesc').value.trim();
+
+        if(!title || !desc) {
+            alert("Harap isi judul dan deskripsi!");
+            return;
+        }
+
+        if(editingCardId) {
+            const card = chanceCardsBank.find(item => item.id === editingCardId);
+            if(card) {
+                card.category = cat;
+                card.title = title;
+                card.desc = desc;
+            }
+        } else {
+            const newId = chanceCardsBank.length ? Math.max(...chanceCardsBank.map(c => c.id)) + 1 : 1;
+            chanceCardsBank.path.push({ id: newId, category: cat, title: title, desc: desc });
+        }
+
+        cancelEditChanceCard();
+        renderGMCards();
+    }
+
+    function editChanceCard(id) {
+        const card = chanceCardsBank.find(item => item.id === id);
+        if(!card) return;
+
+        editingCardId = id;
+        document.getElementById('gmCardFormTitle').innerText = `Edit Kartu #${id}`;
+        document.getElementById('editCardCategory').value = card.category;
+        document.getElementById('editCardTitle').value = card.title;
+        document.getElementById('editCardDesc').value = card.desc;
+
+        document.getElementById('cancelEditCardBtn').classList.remove('hidden');
+    }
+
+    function cancelEditChanceCard() {
+        editingCardId = null;
+        document.getElementById('gmCardFormTitle').innerText = "Tambah Kartu Kesempatan";
+        document.getElementById('editCardCategory').value = '[ATTACK]';
+        document.getElementById('editCardTitle').value = '';
+        document.getElementById('editCardDesc').value = '';
+        document.getElementById('cancelEditCardBtn').classList.add('hidden');
+    }
+
+    function deleteChanceCard(id) {
+        if(confirm("Hapus kartu ini?")) {
+            chanceCardsBank = chanceCardsBank.filter(item => item.id !== id);
+            renderGMCards();
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        drawSnakesAndLaddersSvg();
+    });
+</script>
+</body>
+</html>

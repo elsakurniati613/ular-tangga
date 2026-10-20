@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Snakes & Ladders Accounting - Multi Device</title>
+    
+    <!-- Firebase SDK (Version 9 Compatibility Mode) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --border-color: #334155;
+            --accent-chance: #d97706;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 8px; }
+        
+        .container { width: 100%; max-width: 480px; background: var(--card-bg); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--border-color); margin-bottom: 20px; }
+        header { background: #312e81; color: white; padding: 12px; text-align: center; font-size: 1.1rem; font-weight: bold; border-bottom: 1px solid var(--border-color); letter-spacing: 0.5px; }
+        
+        .screen { padding: 12px; display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; }
+        .hidden { display: none !important; }
+        
+        .login-box { width: 100%; display: flex; flex-direction: column; gap: 10px; background: #0f172a; padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; outline: none; background: #1e293b; color: white; }
+        button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
+        button:hover { background: var(--primary-hover); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        /* Board 10x10 Grid Mobile Optimized */
+        .board-wrapper { width: 100%; position: relative; max-width: 100%; }
+        .board-container { width: 100%; aspect-ratio: 1; position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #475569; background: #020617; }
+        .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr); width: 100%; height: 100%; }
+        
+        .cell { border: 0.5px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: space-between; padding: 1px; font-size: 0.55rem; font-weight: bold; position: relative; background: #0f172a; }
+        .cell:nth-child(even) { background: #1e293b; }
+        .cell-c { background: #451a03 !important; border-color: #f59e0b !important; }
+        .cell-num { color: #94a3b8; font-size: 0.55rem; }
+        
+        .svg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+        .start-area { width: 100%; background: #0f172a; padding: 8px; border: 1px dashed var(--border-color); border-radius: 8px; text-align: center; }
+        .tokens { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; align-items: center; min-height: 20px; }
+        .token-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pawn-svg { width: 18px; height: 22px; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.6)); }
+        .pawn-label { font-size: 0.5rem; color: #ffffff; background: rgba(0,0,0,0.75); padding: 1px 3px; border-radius: 3px; white-space: nowrap; margin-top: -2px; }
+
+        .control-panel { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .player-status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+        .player-card { padding: 8px; border-radius: 8px; background: #0f172a; border: 1px solid var(--border-color); font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
+        .player-card.active { border-color: #6366f1; background: #1e1b4b; box-shadow: 0 0 0 1px #6366f1; }
+        .player-card .pawn-preview { width: 16px; height: 20px; flex-shrink: 0; }
+
+        .dice-box { text-align: center; padding: 12px; background: #0f172a; border-radius: 10px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        
+        .dice-container { perspective: 400px; width: 44px; height: 44px; margin: 2px; }
+        .dice { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s ease-out; }
+        .dice-face { position: absolute; width: 44px; height: 44px; background: #ffffff; border: 2px solid #cbd5e1; border-radius: 6px; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 4px; box-sizing: border-box; }
+        .dot { background: #1e293b; border-radius: 50%; width: 7px; height: 7px; justify-self: center; align-self: center; }
+        .dot.red { background: #ef4444; }
+
+        .f-1 { transform: translateZ(22px); }
+        .f-6 { transform: rotateY(180deg) translateZ(22px); }
+        .f-2 { transform: rotateY(-90deg) translateZ(22px); }
+        .f-5 { transform: rotateY(90deg) translateZ(22px); }
+        .f-3 { transform: rotateX(90deg) translateZ(22px); }
+        .f-4 { transform: rotateX(-90deg) translateZ(22px); }
+
+        .rolling { animation: spin 0.6s infinite linear; }
+        @keyframes spin { 0% { transform: rotateX(0deg) rotateY(0deg); } 100% { transform: rotateX(360deg) rotateY(360deg); } }
+
+        .log-box { height: 80px; background: #020617; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; overflow-y: auto; font-size: 0.7rem; display: flex; flex-direction: column; gap: 3px; width: 100%; color: #cbd5e1; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 14px; }
+        .modal-content { background: #1e293b; padding: 16px; border-radius: 14px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--border-color); }
+
+        .choice-btn { background: #0f172a; border: 1px solid var(--border-color); color: white; text-align: left; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
+        .choice-btn:active { background: #334155; }
+        .choice-btn.btn-correct { background: #065f46 !important; border-color: #10b981 !important; color: #a7f3d0 !important; font-weight: bold; }
+        .choice-btn.btn-wrong { background: #991b1b !important; border-color: #ef4444 !important; color: #fecaca !important; }
+
+        .feedback-banner { padding: 10px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; text-align: center; }
+        .feedback-banner.correct { background: #064e3b; color: #6ee7b7; border: 1px solid #10b981; }
+        .feedback-banner.wrong { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>🎲 Snakes & Ladders (Multi-Device) 🎲</header>
+
+    <!-- SCREEN LOGIN ROOM -->
+    <div id="loginScreen" class="screen">
+        <div class="login-box">
+            <label style="font-size:0.8rem; font-weight:bold;">ID Room Game:</label>
+            <input type="text" id="roomIdInput" placeholder="Masukkan ID Room (misal: SJA2026)..." value="ROOM1">
+            
+            <label style="font-size:0.8rem; font-weight:bold;">Nama Tim/Pemain:</label>
+            <input type="text" id="teamNameInput" placeholder="Ketik nama tim..." autocomplete="off">
+            
+            <label style="font-size:0.8rem; font-weight:bold;">Pilih Peran Perangkat:</label>
+            <select id="playerSlotInput">
+                <option value="0">Pemain 1 (🔴 Merah)</option>
+                <option value="1">Pemain 2 (🔵 Biru)</option>
+                <option value="2">Pemain 3 (🟢 Hijau)</option>
+                <option value="3">Pemain 4 (🟡 Kuning)</option>
+                <option value="gm">Game Master / Display TV</option>
+            </select>
+
+            <button onclick="joinRoom()">Gabung Permainan</button>
+        </div>
+    </div>
+
+    <!-- SCREEN GAME -->
+    <div id="gameScreen" class="screen hidden">
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+            <span id="roomIndicator" style="font-weight:bold; color:#fbbf24;">Room: -</span>
+            <span id="roleIndicator" style="font-weight:bold; color:#818cf8;">Role: -</span>
+            <button onclick="leaveRoom()" style="width:auto; padding:4px 10px; font-size:0.7rem; background:#ef4444;">Keluar</button>
+        </div>
+
+        <div class="start-area">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 2px; font-weight: bold;">🚩 Area Start (Posisi 0)</div>
+            <div class="tokens" id="tokens-0"></div>
+        </div>
+
+        <div class="board-wrapper">
+            <div class="board-container">
+                <div class="board" id="boardGrid"></div>
+                <svg class="svg-overlay" id="svgOverlay"></svg>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="player-status-grid" id="playerStatusList"></div>
+
+            <div class="dice-box">
+                <div id="turnInfo" style="font-size:0.8rem; font-weight:bold; color: #818cf8;">Giliran: -</div>
+                
+                <div class="dice-container">
+                    <div class="dice" id="dice3d">
+                        <div class="dice-face f-1"><div class="dot red" style="grid-area: 2/2"></div></div>
+                        <div class="dice-face f-2"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-3"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 2/2"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-4"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 1/3"></div><div class="dot" style="grid-area: 3/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-5"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 1/3"></div><div class="dot" style="grid-area: 2/2"></div><div class="dot" style="grid-area: 3/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                        <div class="dice-face f-6"><div class="dot" style="grid-area: 1/1"></div><div class="dot" style="grid-area: 1/3"></div><div class="dot" style="grid-area: 2/1"></div><div class="dot" style="grid-area: 2/3"></div><div class="dot" style="grid-area: 3/1"></div><div class="dot" style="grid-area: 3/3"></div></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 6px; width: 100%;">
+                    <button id="useCardBtn" class="hidden" style="background: #10b981; flex: 1;" onclick="useCardAction()">✨ Pakai Kartu</button>
+                    <button id="rollDiceBtn" onclick="rollDice()" style="flex: 1;">🎲 Kocok Dadu</button>
+                </div>
+            </div>
+
+            <div class="log-box" id="gameLogs"></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PILIHAN JAWAB / SKIP -->
+<div id="promptQuestionModal" class="modal hidden">
+    <div class="modal-content" style="text-align:center;">
+        <h3 style="color:#818cf8; font-size:0.95rem;">❓ Pertanyaan Edukasi</h3>
+        <p id="promptLevelInfo" style="font-size:0.75rem; color:#fbbf24; font-weight:bold; margin:6px 0;"></p>
+        <p style="font-size:0.85rem;">Apakah Anda ingin menjawab soal untuk mendapat bonus langkah atau lewati?</p>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button onclick="acceptQuestionChallenge()" style="flex:1; background:#10b981;">Jawab (+Poin)</button>
+            <button onclick="skipQuestionChallenge()" style="flex:1; background:#64748b;">Skip (Lewati)</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PERTANYAAN BONUS -->
+<div id="questionModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 id="qCategoryTitle" style="color:#818cf8; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;"></h3>
+        <p id="qLevelInfo" style="font-size:0.7rem; color:#fbbf24; font-weight:bold;"></p>
+        <p id="qText" style="font-size: 0.85rem; line-height:1.3; font-weight:bold;"></p>
+        
+        <div id="qChoices" style="display:flex; flex-direction:column; gap:6px;"></div>
+        
+        <div id="qFeedbackBanner" class="feedback-banner hidden"></div>
+        <button id="qNextBtn" class="hidden" onclick="closeQuestionModal()" style="background:#4f46e5; margin-top:4px;">Lanjutkan Permainan</button>
+    </div>
+</div>
+
+<script>
+    // 1. ISI KONFIGURASI FIREBASE ANDA DI SINI (Bisa dibuat gratis di console.firebase.google.com)
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+        projectId: "YOUR_PROJECT",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "YOUR_APP_ID"
+    };
+
+    // Inisialisasi Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    const totalCells = 100;
+    const pawnColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'];
+
+    let currentRoomId = "";
+    let myRole = null; // 'player' atau 'gm'
+    let mySlot = null; // 0, 1, 2, 3
+
+    let roomRef = null;
+
+    // Inisialisasi awal room
+    function joinRoom() {
+        const roomId = document.getElementById('roomIdInput').value.trim();
+        const teamName = document.getElementById('teamNameInput').value.trim() || "Pemain";
+        const slotChoice = document.getElementById('playerSlotInput').value;
+
+        if (!roomId) { alert("Masukkan ID Room terlebih dahulu!"); return; }
+
+        currentRoomId = roomId;
+        roomRef = db.ref('rooms/' + currentRoomId);
+
+        if (slotChoice === 'gm') {
+            myRole = 'gm';
+            mySlot = null;
+        } else {
+            myRole = 'player';
+            mySlot = parseInt(slotChoice);
+        }
+
+        // Cek dan buat room jika belum ada
+        roomRef.once('value', snapshot => {
+            if (!snapshot.exists()) {
+                // Inisialisasi Room Baru
+                let initPlayers = [
+                    { name: "Pemain 1", pos: 0, card: null, skipTurn: false, turnCount: 0 },
+                    { name: "Pemain 2", pos: 0, card: null, skipTurn: false, turnCount: 0 },
+                    { name: "Pemain 3", pos: 0, card: null, skipTurn: false, turnCount: 0 },
+                    { name: "Pemain 4", pos: 0, card: null, skipTurn: false, turnCount: 0 }
+                ];
+                if (myRole === 'player') initPlayers[mySlot].name = teamName;
+
+                roomRef.set({
+                    players: initPlayers,
+                    currentTurn: 0,
+                    logs: ["Room " + currentRoomId + " berhasil dibuat!"],
+                    usedQuestionIds: []
+                });
+            } else {
+                if (myRole === 'player') {
+                    roomRef.child('players/' + mySlot + '/name').set(teamName);
+                }
+            }
+
+            // Dengarkan perubahan data Realtime dari Firebase
+            listenToRoomUpdates();
+
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('roomIndicator').innerText = `Room: ${currentRoomId}`;
+            document.getElementById('roleIndicator').innerText = `Role: ${myRole === 'gm' ? 'Game Master' : 'Pemain ' + (mySlot + 1)}`;
+            
+            renderBoard();
+        });
+    }
+
+    function listenToRoomUpdates() {
+        roomRef.on('value', snapshot => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            // Sync state lokal dengan data di Firebase
+            gameState.players = data.players || [];
+            gameState.currentTurn = data.currentTurn || 0;
+            gameState.usedQuestionIds = data.usedQuestionIds || [];
+
+            updateTokens();
+            updateGameUI();
+            renderLogs(data.logs || []);
+        });
+    }
+
+    function leaveRoom() {
+        if (roomRef) roomRef.off();
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('gameScreen').classList.add('hidden');
+    }
+
+    function addLog(text) {
+        roomRef.child('logs').once('value', snapshot => {
+            let logs = snapshot.val() || [];
+            logs.push(text);
+            if(logs.length > 30) logs.shift(); // Batasi log
+            roomRef.child('logs').set(logs);
+        });
+    }
+
+    function renderLogs(logsArr) {
+        const logsBox = document.getElementById('gameLogs');
+        if (logsBox) {
+            logsBox.innerHTML = logsArr.map(l => `<div>> ${l}</div>`).join('');
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+    }
+
+    // Fungsi sinkronisasi gerakan pemain ke Firebase
+    function syncGameState() {
+        roomRef.child('players').set(gameState.players);
+        roomRef.child('currentTurn').set(gameState.currentTurn);
+        roomRef.child('usedQuestionIds').set(gameState.usedQuestionIds);
+    }
+</script>
+</body>
+</html>
